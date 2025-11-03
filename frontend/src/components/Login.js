@@ -16,6 +16,9 @@ const Login = () => {
     dateOfBirth: '',
     address: '',
     phoneNumber: '',
+    bloodType: '',
+    allergies: '',
+    medications: '',
     specialization: '',
     licenseNumber: '',
   });
@@ -219,6 +222,34 @@ const Login = () => {
                     name="phoneNumber"
                     value={formData.phoneNumber}
                     onChange={handleChange}
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Blood Type</label>
+                  <input
+                    type="text"
+                    name="bloodType"
+                    value={formData.bloodType}
+                    onChange={handleChange}
+                    placeholder="e.g., A+, O-, AB+"
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Allergies</label>
+                  <textarea
+                    name="allergies"
+                    value={formData.allergies}
+                    onChange={handleChange}
+                    placeholder="List any allergies..."
+                  />
+                </div>
+                <div className="form-group">
+                  <label>Medications</label>
+                  <textarea
+                    name="medications"
+                    value={formData.medications}
+                    onChange={handleChange}
+                    placeholder="List current medications..."
                   />
                 </div>
               </>

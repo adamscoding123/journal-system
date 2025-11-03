@@ -21,6 +21,9 @@ public class RegisterRequest {
     private String dateOfBirth;
     private String address;
     private String phoneNumber;
+    private String bloodType;
+    private String allergies;
+    private String medications;
 
     // Practitioner specific fields
     private String specialization;

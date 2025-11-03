@@ -74,6 +74,9 @@ public class AuthService {
             patient.setDateOfBirth(LocalDate.parse(request.getDateOfBirth()));
             patient.setAddress(request.getAddress());
             patient.setPhoneNumber(request.getPhoneNumber());
+            patient.setBloodType(request.getBloodType());
+            patient.setAllergies(request.getAllergies());
+            patient.setMedications(request.getMedications());
             patientRepository.save(patient);
         } else if (request.getRole() == Role.DOCTOR || request.getRole() == Role.STAFF) {
             Practitioner practitioner = new Practitioner();

@@ -25,6 +25,15 @@ const DoctorDashboard = () => {
   const [showEncounterForm, setShowEncounterForm] = useState(false);
   const [showObservationForm, setShowObservationForm] = useState(false);
   const [showConditionForm, setShowConditionForm] = useState(false);
+  const [showPatientEditForm, setShowPatientEditForm] = useState(false);
+
+  const [editPatientData, setEditPatientData] = useState({
+    bloodType: '',
+    allergies: '',
+    medications: '',
+    address: '',
+    phoneNumber: '',
+  });
 
   const [newEncounter, setNewEncounter] = useState({
     encounterType: '',
@@ -86,7 +95,30 @@ const DoctorDashboard = () => {
 
   const handleSelectPatient = (patient) => {
     setSelectedPatient(patient);
+    setEditPatientData({
+      bloodType: patient.bloodType || '',
+      allergies: patient.allergies || '',
+      medications: patient.medications || '',
+      address: patient.address || '',
+      phoneNumber: patient.phoneNumber || '',
+    });
     fetchPatientData(patient.id);
+  };
+
+  const handleUpdatePatient = async (e) => {
+    e.preventDefault();
+    try {
+      await patientAPI.update(selectedPatient.id, editPatientData);
+      setShowPatientEditForm(false);
+      // Refresh patient list
+      const patientsRes = await patientAPI.getAll();
+      setPatients(patientsRes.data);
+      // Update selected patient
+      const updatedPatient = patientsRes.data.find(p => p.id === selectedPatient.id);
+      setSelectedPatient(updatedPatient);
+    } catch (error) {
+      console.error('Error updating patient:', error);
+    }
   };
 
   const handleCreateEncounter = async (e) => {
@@ -216,16 +248,86 @@ const DoctorDashboard = () => {
         {selectedPatient && (
           <>
             <div className="card">
-              <h3>
-                Patient: {selectedPatient.user?.firstName} {selectedPatient.user?.lastName}
-              </h3>
-              <p><strong>Personal Number:</strong> {selectedPatient.personalNumber}</p>
-              <p><strong>Date of Birth:</strong> {selectedPatient.dateOfBirth}</p>
-              <p><strong>Address:</strong> {selectedPatient.address}</p>
-              <p><strong>Phone:</strong> {selectedPatient.phoneNumber}</p>
-              <p><strong>Blood Type:</strong> {selectedPatient.bloodType || 'N/A'}</p>
-              <p><strong>Allergies:</strong> {selectedPatient.allergies || 'None'}</p>
-              <p><strong>Medications:</strong> {selectedPatient.medications || 'None'}</p>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <h3>
+                  Patient: {selectedPatient.user?.firstName} {selectedPatient.user?.lastName}
+                </h3>
+                <button
+                  className="btn btn-primary"
+                  onClick={() => setShowPatientEditForm(!showPatientEditForm)}
+                >
+                  {showPatientEditForm ? 'Cancel' : 'Edit Patient Info'}
+                </button>
+              </div>
+
+              {showPatientEditForm ? (
+                <form onSubmit={handleUpdatePatient} style={{ marginTop: '1rem' }}>
+                  <div className="form-group">
+                    <label>Address</label>
+                    <input
+                      type="text"
+                      value={editPatientData.address}
+                      onChange={(e) =>
+                        setEditPatientData({ ...editPatientData, address: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Phone Number</label>
+                    <input
+                      type="text"
+                      value={editPatientData.phoneNumber}
+                      onChange={(e) =>
+                        setEditPatientData({ ...editPatientData, phoneNumber: e.target.value })
+                      }
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Blood Type</label>
+                    <input
+                      type="text"
+                      value={editPatientData.bloodType}
+                      onChange={(e) =>
+                        setEditPatientData({ ...editPatientData, bloodType: e.target.value })
+                      }
+                      placeholder="e.g., A+, O-, AB+"
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Allergies</label>
+                    <textarea
+                      value={editPatientData.allergies}
+                      onChange={(e) =>
+                        setEditPatientData({ ...editPatientData, allergies: e.target.value })
+                      }
+                      placeholder="List any allergies..."
+                    />
+                  </div>
+                  <div className="form-group">
+                    <label>Medications</label>
+                    <textarea
+                      value={editPatientData.medications}
+                      onChange={(e) =>
+                        setEditPatientData({ ...editPatientData, medications: e.target.value })
+                      }
+                      placeholder="List current medications..."
+                    />
+                  </div>
+                  <button type="submit" className="btn btn-success">
+                    Save Changes
+                  </button>
+                </form>
+              ) : (
+                <div style={{ marginTop: '1rem' }}>
+                  <p><strong>Personal Number:</strong> {selectedPatient.personalNumber}</p>
+                  <p><strong>Date of Birth:</strong> {selectedPatient.dateOfBirth}</p>
+                  <p><strong>Address:</strong> {selectedPatient.address || 'N/A'}</p>
+                  <p><strong>Phone:</strong> {selectedPatient.phoneNumber || 'N/A'}</p>
+                  <p><strong>Blood Type:</strong> {selectedPatient.bloodType || 'N/A'}</p>
+                  <p><strong>Allergies:</strong> {selectedPatient.allergies || 'None'}</p>
+                  <p><strong>Medications:</strong> {selectedPatient.medications || 'None'}</p>
+                </div>
+              )}
             </div>
 
             <div className="card">
