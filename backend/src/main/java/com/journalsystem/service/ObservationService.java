@@ -4,10 +4,16 @@ import com.journalsystem.model.Observation;
 import com.journalsystem.model.Patient;
 import com.journalsystem.repository.ObservationRepository;
 import com.journalsystem.repository.PatientRepository;
+import com.journalsystem.service.fhir.ObservationFhirService;
+import com.journalsystem.converter.ObservationFhirConverter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ObservationService {
@@ -17,6 +23,18 @@ public class ObservationService {
 
     @Autowired
     private PatientRepository patientRepository;
+    
+    @Autowired
+    private ObservationFhirService observationFhirService;
+    
+    @Autowired
+    private ObservationFhirConverter observationFhirConverter;
+    
+    @Value("${fhir.enabled:false}")
+    private boolean fhirEnabled;
+    
+    @Autowired
+    private PatientService patientService;
 
     public List<Observation> getAllObservations() {
         return observationRepository.findAll();
@@ -28,9 +46,37 @@ public class ObservationService {
     }
 
     public List<Observation> getObservationsByPatientId(Long patientId) {
-        Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
-        return observationRepository.findByPatientOrderByObservationDateDesc(patient);
+        // First try local database
+        Optional<Patient> localPatient = patientRepository.findById(patientId);
+        if (localPatient.isPresent()) {
+            return observationRepository.findByPatientOrderByObservationDateDesc(localPatient.get());
+        }
+        
+        // If not found locally and FHIR is enabled, try FHIR
+        if (fhirEnabled) {
+            // Get the actual FHIR ID for this local ID
+            String fhirId = patientService.getFhirIdForLocalId(patientId);
+            if (fhirId == null) {
+                // If no mapping found, try using the ID as-is
+                fhirId = patientId.toString();
+            }
+            
+            List<org.hl7.fhir.r4.model.Observation> fhirObservations = 
+                    observationFhirService.getObservationsByPatient(fhirId);
+            return fhirObservations.stream()
+                    .map(fhirObservation -> {
+                        Observation localObservation = observationFhirConverter.fromFhir(fhirObservation);
+                        // Set a dummy patient with just the ID for reference
+                        Patient patient = new Patient();
+                        patient.setId(patientId);
+                        localObservation.setPatient(patient);
+                        return localObservation;
+                    })
+                    .collect(Collectors.toList());
+        }
+        
+        // If FHIR is disabled or no results, return empty list
+        return new ArrayList<>();
     }
 
     public Observation createObservation(Observation observation) {

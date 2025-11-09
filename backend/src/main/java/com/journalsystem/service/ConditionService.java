@@ -4,10 +4,16 @@ import com.journalsystem.model.Condition;
 import com.journalsystem.model.Patient;
 import com.journalsystem.repository.ConditionRepository;
 import com.journalsystem.repository.PatientRepository;
+import com.journalsystem.service.fhir.ConditionFhirService;
+import com.journalsystem.converter.ConditionFhirConverter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class ConditionService {
@@ -17,6 +23,18 @@ public class ConditionService {
 
     @Autowired
     private PatientRepository patientRepository;
+    
+    @Autowired
+    private ConditionFhirService conditionFhirService;
+    
+    @Autowired
+    private ConditionFhirConverter conditionFhirConverter;
+    
+    @Value("${fhir.enabled:false}")
+    private boolean fhirEnabled;
+    
+    @Autowired
+    private PatientService patientService;
 
     public List<Condition> getAllConditions() {
         return conditionRepository.findAll();
@@ -28,9 +46,37 @@ public class ConditionService {
     }
 
     public List<Condition> getConditionsByPatientId(Long patientId) {
-        Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
-        return conditionRepository.findByPatientOrderByDiagnosisDateDesc(patient);
+        // First try local database
+        Optional<Patient> localPatient = patientRepository.findById(patientId);
+        if (localPatient.isPresent()) {
+            return conditionRepository.findByPatientOrderByDiagnosisDateDesc(localPatient.get());
+        }
+        
+        // If not found locally and FHIR is enabled, try FHIR
+        if (fhirEnabled) {
+            // Get the actual FHIR ID for this local ID
+            String fhirId = patientService.getFhirIdForLocalId(patientId);
+            if (fhirId == null) {
+                // If no mapping found, try using the ID as-is
+                fhirId = patientId.toString();
+            }
+            
+            List<org.hl7.fhir.r4.model.Condition> fhirConditions = 
+                    conditionFhirService.getConditionsByPatient(fhirId);
+            return fhirConditions.stream()
+                    .map(fhirCondition -> {
+                        Condition localCondition = conditionFhirConverter.fromFhir(fhirCondition);
+                        // Set a dummy patient with just the ID for reference
+                        Patient patient = new Patient();
+                        patient.setId(patientId);
+                        localCondition.setPatient(patient);
+                        return localCondition;
+                    })
+                    .collect(Collectors.toList());
+        }
+        
+        // If FHIR is disabled or no results, return empty list
+        return new ArrayList<>();
     }
 
     public Condition createCondition(Condition condition) {

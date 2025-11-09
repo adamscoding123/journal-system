@@ -61,10 +61,18 @@ const DoctorDashboard = () => {
 
   const fetchDoctorData = async () => {
     try {
+      // Check if user and userId exist before making API calls
+      if (!user || !user.userId) {
+        console.error('User information not available');
+        setLoading(false);
+        return;
+      }
+
       const practitionerRes = await practitionerAPI.getByUserId(user.userId);
       setPractitioner(practitionerRes.data);
 
       const patientsRes = await patientAPI.getAll();
+      console.log('Patients loaded:', patientsRes.data); // Debug log
       setPatients(patientsRes.data);
 
       const messagesRes = await messageAPI.getByUserId(user.userId);
@@ -79,6 +87,19 @@ const DoctorDashboard = () => {
 
   const fetchPatientData = async (patientId) => {
     try {
+      console.log('fetchPatientData called with patientId:', patientId, 'Type:', typeof patientId); // Debug log
+      
+      // Check if patientId is valid before making API calls
+      if (!patientId || patientId === 'null' || patientId === 'undefined') {
+        console.error('Invalid patient ID provided:', patientId);
+        setPatientData({
+          encounters: [],
+          observations: [],
+          conditions: [],
+        });
+        return;
+      }
+
       const encountersRes = await encounterAPI.getByPatientId(patientId);
       const observationsRes = await observationAPI.getByPatientId(patientId);
       const conditionsRes = await conditionAPI.getByPatientId(patientId);
@@ -94,6 +115,12 @@ const DoctorDashboard = () => {
   };
 
   const handleSelectPatient = (patient) => {
+    console.log('Patient selected:', patient); // Debug log
+    if (!patient || !patient.id) {
+      console.error('Invalid patient selected:', patient);
+      return;
+    }
+    
     setSelectedPatient(patient);
     setEditPatientData({
       bloodType: patient.bloodType || '',
@@ -211,10 +238,12 @@ const DoctorDashboard = () => {
                     style={{ cursor: 'pointer' }}
                   >
                     <div className="message-subject">
-                      {patient.user?.firstName} {patient.user?.lastName}
+                      {patient.user ? 
+                        `${patient.user.firstName} ${patient.user.lastName}` : 
+                        `${patient.firstName || ''} ${patient.lastName || ''}`.trim() || 'Anonymous Patient'}
                     </div>
                     <div className="message-sender">
-                      Personal Number: {patient.personalNumber}
+                      Personal Number: {patient.personalNumber || 'N/A'}
                     </div>
                   </li>
                 ))}
@@ -250,7 +279,9 @@ const DoctorDashboard = () => {
             <div className="card">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <h3>
-                  Patient: {selectedPatient.user?.firstName} {selectedPatient.user?.lastName}
+                  Patient: {selectedPatient.user ? 
+                    `${selectedPatient.user.firstName} ${selectedPatient.user.lastName}` :
+                    `${selectedPatient.firstName || ''} ${selectedPatient.lastName || ''}`.trim() || 'Anonymous Patient'}
                 </h3>
                 <button
                   className="btn btn-primary"
