@@ -49,6 +49,13 @@ public class Patient {
     @Column
     private LocalDateTime updatedAt;
 
+    // Transient fields for FHIR patients who don't have associated User accounts
+    @Transient
+    private String firstName;
+    
+    @Transient
+    private String lastName;
+
     @PrePersist
     protected void onCreate() {
         createdAt = LocalDateTime.now();
