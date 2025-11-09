@@ -20,6 +20,9 @@ const PatientDashboard = () => {
   const [practitioners, setPractitioners] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showMessageForm, setShowMessageForm] = useState(false);
+  const [selectedMessage, setSelectedMessage] = useState(null);
+  const [showMessageDetail, setShowMessageDetail] = useState(false);
+  const [messageReplies, setMessageReplies] = useState([]);
   const [newMessage, setNewMessage] = useState({
     receiverId: '',
     subject: '',
@@ -78,6 +81,32 @@ const PatientDashboard = () => {
       fetchPatientData();
     } catch (error) {
       console.error('Error sending message:', error);
+    }
+  };
+
+  const handleSelectMessage = async (message) => {
+    setSelectedMessage(message);
+    setShowMessageDetail(true);
+    
+    // Mark message as read if patient is receiver
+    if (!message.isRead && message.receiver.id === user.userId) {
+      try {
+        await messageAPI.markAsRead(message.id);
+        // Update local state
+        setMessages(messages.map(msg => 
+          msg.id === message.id ? { ...msg, isRead: true } : msg
+        ));
+      } catch (error) {
+        console.error('Error marking message as read:', error);
+      }
+    }
+    
+    // Fetch replies
+    try {
+      const repliesRes = await messageAPI.getReplies(message.id);
+      setMessageReplies(repliesRes.data);
+    } catch (error) {
+      console.error('Error fetching replies:', error);
     }
   };
 
@@ -260,11 +289,13 @@ const PatientDashboard = () => {
                   <li
                     key={msg.id}
                     className={`message-item ${!msg.isRead ? 'unread' : ''}`}
+                    onClick={() => handleSelectMessage(msg)}
+                    style={{ cursor: 'pointer' }}
                   >
                     <div className="message-subject">{msg.subject}</div>
                     <div className="message-sender">
                       {msg.sender.id === user.userId ? 'To: ' : 'From: '}
-                      {msg.sender.username}
+                      {msg.sender.id === user.userId ? msg.receiver.username : msg.sender.username}
                     </div>
                     <div className="message-date">
                       {new Date(msg.sentAt).toLocaleString()}
@@ -275,6 +306,76 @@ const PatientDashboard = () => {
             )}
           </div>
         </div>
+
+        {showMessageDetail && selectedMessage && (
+          <div className="modal">
+            <div className="modal-content" style={{ maxWidth: '600px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                <h3>Message Details</h3>
+                <button
+                  className="btn btn-danger"
+                  onClick={() => {
+                    setShowMessageDetail(false);
+                    setSelectedMessage(null);
+                    setMessageReplies([]);
+                  }}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div style={{ marginBottom: '1rem', padding: '1rem', background: '#f5f5f5', borderRadius: '5px' }}>
+                <p><strong>{selectedMessage.sender.id === user.userId ? 'To' : 'From'}:</strong> {
+                  selectedMessage.sender.id === user.userId ? 
+                  selectedMessage.receiver.username : 
+                  selectedMessage.sender.username
+                }</p>
+                <p><strong>Subject:</strong> {selectedMessage.subject}</p>
+                <p><strong>Date:</strong> {new Date(selectedMessage.sentAt).toLocaleString()}</p>
+                <hr />
+                <p><strong>Message:</strong></p>
+                <p style={{ whiteSpace: 'pre-wrap' }}>{selectedMessage.content}</p>
+              </div>
+
+              {messageReplies.length > 0 && (
+                <div style={{ marginBottom: '1rem' }}>
+                  <h4>Conversation Thread:</h4>
+                  {messageReplies.map(reply => (
+                    <div key={reply.id} style={{ 
+                      marginBottom: '0.5rem', 
+                      padding: '0.5rem', 
+                      background: reply.sender.id === user.userId ? '#e3f2fd' : '#f5f5f5',
+                      borderRadius: '5px'
+                    }}>
+                      <p><strong>{reply.sender.username}</strong> - {new Date(reply.sentAt).toLocaleString()}</p>
+                      <p>{reply.content}</p>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* Only show new message button if this is a conversation the patient started */}
+              {selectedMessage.sender.id === user.userId && messageReplies.length > 0 && (
+                <div style={{ marginTop: '1rem', textAlign: 'center' }}>
+                  <button 
+                    className="btn btn-primary"
+                    onClick={() => {
+                      setShowMessageDetail(false);
+                      setShowMessageForm(true);
+                      setNewMessage({
+                        receiverId: selectedMessage.receiver.id.toString(),
+                        subject: `Re: ${selectedMessage.subject}`,
+                        content: ''
+                      });
+                    }}
+                  >
+                    Send New Message
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </>
   );
