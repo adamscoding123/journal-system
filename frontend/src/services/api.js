@@ -32,8 +32,18 @@ export const authAPI = {
 // Patient API
 export const patientAPI = {
   getAll: () => api.get('/patients'),
-  getById: (id) => api.get(`/patients/${id}`),
-  getByUserId: (userId) => api.get(`/patients/user/${userId}`),
+  getById: (id) => {
+    if (!id || id === 'null' || id === 'undefined') {
+      return Promise.reject(new Error('Invalid patient ID'));
+    }
+    return api.get(`/patients/${id}`);
+  },
+  getByUserId: (userId) => {
+    if (!userId || userId === 'null' || userId === 'undefined') {
+      return Promise.reject(new Error('Invalid user ID'));
+    }
+    return api.get(`/patients/user/${userId}`);
+  },
   update: (id, data) => api.put(`/patients/${id}`, data),
   delete: (id) => api.delete(`/patients/${id}`),
 };
@@ -41,8 +51,18 @@ export const patientAPI = {
 // Practitioner API
 export const practitionerAPI = {
   getAll: () => api.get('/practitioners'),
-  getById: (id) => api.get(`/practitioners/${id}`),
-  getByUserId: (userId) => api.get(`/practitioners/user/${userId}`),
+  getById: (id) => {
+    if (!id || id === 'null' || id === 'undefined') {
+      return Promise.reject(new Error('Invalid practitioner ID'));
+    }
+    return api.get(`/practitioners/${id}`);
+  },
+  getByUserId: (userId) => {
+    if (!userId || userId === 'null' || userId === 'undefined') {
+      return Promise.reject(new Error('Invalid user ID'));
+    }
+    return api.get(`/practitioners/user/${userId}`);
+  },
   update: (id, data) => api.put(`/practitioners/${id}`, data),
   delete: (id) => api.delete(`/practitioners/${id}`),
 };
@@ -51,7 +71,12 @@ export const practitionerAPI = {
 export const encounterAPI = {
   getAll: () => api.get('/encounters'),
   getById: (id) => api.get(`/encounters/${id}`),
-  getByPatientId: (patientId) => api.get(`/encounters/patient/${patientId}`),
+  getByPatientId: (patientId) => {
+    if (!patientId || patientId === 'null' || patientId === 'undefined') {
+      return Promise.reject(new Error('Invalid patient ID'));
+    }
+    return api.get(`/encounters/patient/${patientId}`);
+  },
   create: (data) => api.post('/encounters', data),
   update: (id, data) => api.put(`/encounters/${id}`, data),
   delete: (id) => api.delete(`/encounters/${id}`),
@@ -61,7 +86,12 @@ export const encounterAPI = {
 export const observationAPI = {
   getAll: () => api.get('/observations'),
   getById: (id) => api.get(`/observations/${id}`),
-  getByPatientId: (patientId) => api.get(`/observations/patient/${patientId}`),
+  getByPatientId: (patientId) => {
+    if (!patientId || patientId === 'null' || patientId === 'undefined') {
+      return Promise.reject(new Error('Invalid patient ID'));
+    }
+    return api.get(`/observations/patient/${patientId}`);
+  },
   create: (data) => api.post('/observations', data),
   update: (id, data) => api.put(`/observations/${id}`, data),
   delete: (id) => api.delete(`/observations/${id}`),
@@ -71,7 +101,12 @@ export const observationAPI = {
 export const conditionAPI = {
   getAll: () => api.get('/conditions'),
   getById: (id) => api.get(`/conditions/${id}`),
-  getByPatientId: (patientId) => api.get(`/conditions/patient/${patientId}`),
+  getByPatientId: (patientId) => {
+    if (!patientId || patientId === 'null' || patientId === 'undefined') {
+      return Promise.reject(new Error('Invalid patient ID'));
+    }
+    return api.get(`/conditions/patient/${patientId}`);
+  },
   create: (data) => api.post('/conditions', data),
   update: (id, data) => api.put(`/conditions/${id}`, data),
   delete: (id) => api.delete(`/conditions/${id}`),
@@ -79,7 +114,12 @@ export const conditionAPI = {
 
 // Message API
 export const messageAPI = {
-  getByUserId: (userId) => api.get(`/messages/user/${userId}`),
+  getByUserId: (userId) => {
+    if (!userId || userId === 'null' || userId === 'undefined') {
+      return Promise.reject(new Error('Invalid user ID'));
+    }
+    return api.get(`/messages/user/${userId}`);
+  },
   getReceived: (userId) => api.get(`/messages/received/${userId}`),
   getSent: (userId) => api.get(`/messages/sent/${userId}`),
   getUnread: (userId) => api.get(`/messages/unread/${userId}`),

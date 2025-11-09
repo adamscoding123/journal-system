@@ -32,6 +32,13 @@ const PatientDashboard = () => {
 
   const fetchPatientData = async () => {
     try {
+      // Check if user and userId exist before making API calls
+      if (!user || !user.userId) {
+        console.error('User information not available');
+        setLoading(false);
+        return;
+      }
+
       const patientRes = await patientAPI.getByUserId(user.userId);
       setPatient(patientRes.data);
 

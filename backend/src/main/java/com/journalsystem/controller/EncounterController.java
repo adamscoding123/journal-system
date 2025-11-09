@@ -32,6 +32,9 @@ public class EncounterController {
     @GetMapping("/patient/{patientId}")
     @PreAuthorize("hasAnyRole('DOCTOR', 'STAFF', 'PATIENT')")
     public ResponseEntity<List<Encounter>> getEncountersByPatientId(@PathVariable Long patientId) {
+        if (patientId == null) {
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(encounterService.getEncountersByPatientId(patientId));
     }
 

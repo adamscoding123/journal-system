@@ -26,12 +26,18 @@ public class PatientController {
     @GetMapping("/{id}")
     @PreAuthorize("hasAnyRole('DOCTOR', 'STAFF', 'PATIENT')")
     public ResponseEntity<Patient> getPatientById(@PathVariable Long id) {
+        if (id == null) {
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(patientService.getPatientById(id));
     }
 
     @GetMapping("/user/{userId}")
     @PreAuthorize("hasAnyRole('DOCTOR', 'STAFF', 'PATIENT')")
     public ResponseEntity<Patient> getPatientByUserId(@PathVariable Long userId) {
+        if (userId == null) {
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(patientService.getPatientByUserId(userId));
     }
 

@@ -6,10 +6,16 @@ import com.journalsystem.model.Practitioner;
 import com.journalsystem.repository.EncounterRepository;
 import com.journalsystem.repository.PatientRepository;
 import com.journalsystem.repository.PractitionerRepository;
+import com.journalsystem.service.fhir.EncounterFhirService;
+import com.journalsystem.converter.EncounterFhirConverter;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.ArrayList;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class EncounterService {
@@ -22,6 +28,18 @@ public class EncounterService {
 
     @Autowired
     private PractitionerRepository practitionerRepository;
+    
+    @Autowired
+    private EncounterFhirService encounterFhirService;
+    
+    @Autowired
+    private EncounterFhirConverter encounterFhirConverter;
+    
+    @Value("${fhir.enabled:false}")
+    private boolean fhirEnabled;
+    
+    @Autowired
+    private PatientService patientService;
 
     public List<Encounter> getAllEncounters() {
         return encounterRepository.findAll();
@@ -33,9 +51,37 @@ public class EncounterService {
     }
 
     public List<Encounter> getEncountersByPatientId(Long patientId) {
-        Patient patient = patientRepository.findById(patientId)
-                .orElseThrow(() -> new RuntimeException("Patient not found"));
-        return encounterRepository.findByPatientOrderByEncounterDateDesc(patient);
+        // First try local database
+        Optional<Patient> localPatient = patientRepository.findById(patientId);
+        if (localPatient.isPresent()) {
+            return encounterRepository.findByPatientOrderByEncounterDateDesc(localPatient.get());
+        }
+        
+        // If not found locally and FHIR is enabled, try FHIR
+        if (fhirEnabled) {
+            // Get the actual FHIR ID for this local ID
+            String fhirId = patientService.getFhirIdForLocalId(patientId);
+            if (fhirId == null) {
+                // If no mapping found, try using the ID as-is
+                fhirId = patientId.toString();
+            }
+            
+            List<org.hl7.fhir.r4.model.Encounter> fhirEncounters = 
+                    encounterFhirService.getEncountersByPatient(fhirId);
+            return fhirEncounters.stream()
+                    .map(fhirEncounter -> {
+                        Encounter localEncounter = encounterFhirConverter.fromFhir(fhirEncounter);
+                        // Set a dummy patient with just the ID for reference
+                        Patient patient = new Patient();
+                        patient.setId(patientId);
+                        localEncounter.setPatient(patient);
+                        return localEncounter;
+                    })
+                    .collect(Collectors.toList());
+        }
+        
+        // If FHIR is disabled or no results, return empty list
+        return new ArrayList<>();
     }
 
     public Encounter createEncounter(Encounter encounter) {

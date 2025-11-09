@@ -32,6 +32,9 @@ public class ConditionController {
     @GetMapping("/patient/{patientId}")
     @PreAuthorize("hasAnyRole('DOCTOR', 'STAFF', 'PATIENT')")
     public ResponseEntity<List<Condition>> getConditionsByPatientId(@PathVariable Long patientId) {
+        if (patientId == null) {
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(conditionService.getConditionsByPatientId(patientId));
     }
 

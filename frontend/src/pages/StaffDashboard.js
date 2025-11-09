@@ -42,6 +42,13 @@ const StaffDashboard = () => {
 
   const fetchStaffData = async () => {
     try {
+      // Check if user and userId exist before making API calls
+      if (!user || !user.userId) {
+        console.error('User information not available');
+        setLoading(false);
+        return;
+      }
+
       const practitionerRes = await practitionerAPI.getByUserId(user.userId);
       setPractitioner(practitionerRes.data);
 

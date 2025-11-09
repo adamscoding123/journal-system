@@ -32,6 +32,9 @@ public class ObservationController {
     @GetMapping("/patient/{patientId}")
     @PreAuthorize("hasAnyRole('DOCTOR', 'STAFF', 'PATIENT')")
     public ResponseEntity<List<Observation>> getObservationsByPatientId(@PathVariable Long patientId) {
+        if (patientId == null) {
+            return ResponseEntity.badRequest().build();
+        }
         return ResponseEntity.ok(observationService.getObservationsByPatientId(patientId));
     }
 
